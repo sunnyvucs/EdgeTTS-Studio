@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edge TTS — Hindi & English Audio Generator</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="icon">🎙</span>
+    <h1>Edge TTS</h1>
+    <span class="subtitle">Hindi &amp; English Audio Generator</span>
+  </div>
+  <div class="navbar-actions">
+    <a href="/video" class="badge" style="text-decoration:none;cursor:pointer;">🎬 Video Studio</a>
+    <span class="badge">Microsoft Edge TTS</span>
+    <button class="theme-toggle" id="theme-btn">☀ Light</button>
+  </div>
+</nav>
+
+<!-- ── Toast container ───────────────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ── Main layout ───────────────────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+
+    <!-- Text Input -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Script / Text</span>
+        <span class="char-counter" id="char-counter">0 / 5000</span>
+      </div>
+      <textarea
+        id="text-input"
+        placeholder="यहाँ अपना हिंदी या English टेक्स्ट लिखें…&#10;Type your Hindi or English text here…"
+        maxlength="5000"
+        spellcheck="false"
+      ></textarea>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Controls</span>
+      </div>
+
+      <!-- Speed & Pitch sliders -->
+      <div class="slider-row">
+        <div class="slider-group">
+          <label for="speed-slider">
+            Speed
+            <span class="slider-value" id="speed-val">1.0x</span>
+          </label>
+          <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" />
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--fg3);margin-top:3px;">
+            <span>0.5×</span><span>1.0×</span><span>2.0×</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label for="pitch-slider">
+            Pitch
+            <span class="slider-value" id="pitch-val">+1Hz</span>
+          </label>
+          <input type="range" id="pitch-slider" min="-20" max="20" step="1" value="1" />
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--fg3);margin-top:3px;">
+            <span>−20Hz</span><span>0Hz</span><span>+20Hz</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- ── Advanced Controls (collapsible) ── -->
+      <button class="advanced-toggle" id="advanced-toggle" type="button">
+        <span class="arrow">▶</span>
+        ⚙ Advanced Controls
+        <span style="margin-left:auto;font-size:.72rem;color:var(--fg3);font-weight:400">
+          Emotion · Pause · Emphasis
+        </span>
+      </button>
+
+      <div class="advanced-body" id="advanced-body">
+
+        <!-- Emotion / Style -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label for="style-select">Emotion / Style</label>
+          <select id="style-select">
+            <option value="default">Default</option>
+            <option value="cheerful">Cheerful</option>
+            <option value="calm">Calm</option>
+            <option value="friendly">Friendly</option>
+            <option value="sad">Sad</option>
+            <option value="angry">Angry</option>
+            <option value="narration-professional">Narration — Professional</option>
+            <option value="newscast">Newscast</option>
+            <option value="customerservice">Customer Service</option>
+          </select>
+          <div class="style-info" id="style-info"></div>
+        </div>
+
+        <!-- Emphasis + Pause row -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="emphasis-select">Emphasis</label>
+            <select id="emphasis-select">
+              <option value="none">None</option>
+              <option value="moderate">Moderate</option>
+              <option value="strong">Strong</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="pause-input">Sentence Pause (ms)</label>
+            <input type="number" id="pause-input" value="300" min="0" max="2000" step="50" />
+          </div>
+        </div>
+
+        <p class="pause-desc">
+          Pauses are inserted automatically between sentences (detected by <code>. ? ! ।</code>).
+        </p>
+
+      </div><!-- /advanced-body -->
+
+      <hr class="divider" />
+
+      <!-- File path (desktop only) -->
+      <div class="desktop-only">
+        <label for="filename-input">
+          Output filename
+          <span style="color:var(--fg3);font-weight:400">(optional — auto-generated if blank)</span>
+        </label>
+        <div class="path-row">
+          <input type="text" id="filename-input"
+            placeholder="e.g. my_audio.mp3  — saved to OUTPUT_AUDIO/" />
+        </div>
+        <p style="font-size:.75rem;color:var(--fg3);margin-top:6px;">
+          Files are saved in <code style="color:var(--accent)">OUTPUT_AUDIO/</code> inside the project folder.
+        </p>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="btn-row">
+        <button class="btn btn-primary" id="gen-btn">⚡ Generate</button>
+        <button class="btn btn-secondary" id="play-btn">▶ Play</button>
+        <button class="btn btn-muted" id="stop-btn" disabled>⏹ Stop</button>
+      </div>
+
+      <!-- Result block (shown after generate) -->
+      <div class="result-block" id="result-block">
+        <div style="font-size:.8rem;color:var(--fg2);margin-bottom:6px;">✓ Audio generated:</div>
+        <div class="result-filename" id="result-filename"></div>
+        <div class="btn-row" style="margin-top:12px;">
+          <a class="btn btn-download" id="dl-btn" href="#" download>⬇ Download</a>
+        </div>
+      </div>
+
+    </div><!-- /card controls -->
+
+  </div><!-- /left-col -->
+
+  <!-- RIGHT COLUMN — Voice Selection -->
+  <div class="right-col">
+    <div class="card voice-section">
+      <div class="card-header">
+        <span class="card-title">Voice</span>
+      </div>
+
+      <label for="voice-select">Select Voice</label>
+      <select id="voice-select" size="1">
+        <option value="">Loading voices…</option>
+      </select>
+      <p class="voice-info" id="voice-info"></p>
+
+      <hr class="divider" />
+
+      <div style="font-size:.8rem;color:var(--fg2);line-height:1.6;">
+        <strong>Available languages:</strong>
+        <ul style="margin-top:6px;padding-left:16px;color:var(--fg3);">
+          <li>Hindi (India) — हिंदी</li>
+          <li>English (India)</li>
+          <li>English (US)</li>
+          <li>English (UK)</li>
+          <li>English (Australia)</li>
+        </ul>
+      </div>
+
+      <hr class="divider" />
+
+      <div style="font-size:.8rem;color:var(--fg3);line-height:1.6;">
+        <strong style="color:var(--fg2);">How to use:</strong>
+        <ol style="margin-top:6px;padding-left:16px;">
+          <li>Select a voice above</li>
+          <li>Enter your text</li>
+          <li>Adjust speed &amp; pitch</li>
+          <li>Open <em>Advanced Controls</em> for emotion, pause &amp; emphasis</li>
+          <li>Click <strong>▶ Play</strong> to preview</li>
+          <li>Click <strong>⚡ Generate</strong> to save</li>
+          <li>Download with the button below</li>
+        </ol>
+      </div>
+    </div>
+  </div><!-- /right-col -->
+
+</div><!-- /container -->
+
+<!-- Hidden audio element for playback -->
+<audio id="audio-player" style="display:none;" preload="none"></audio>
+
+<!-- ── Status bar ─────────────────────────────────────────────────────────── -->
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-msg" id="status-msg">Initializing…</span>
+  <span class="status-path" id="status-path"></span>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
