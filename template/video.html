@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Studio — Hinglish Video Generator</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    /* ── Video Studio extras (scoped, no conflicts with style.css) ── */
+    .vs-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .vs-grid { grid-template-columns: 1fr; } }
+
+    .vs-full { grid-column: 1 / -1; }
+
+    /* JSON editor */
+    #script-editor {
+      width: 100%;
+      min-height: 340px;
+      font-family: 'Consolas', 'Fira Code', monospace;
+      font-size: .88rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    /* Scene table */
+    .scene-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .scene-table th {
+      background: var(--bg3);
+      color: var(--fg2);
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .scene-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--fg);
+      vertical-align: top;
+    }
+    .scene-table tr:last-child td { border-bottom: none; }
+    .scene-table tr:hover td { background: var(--bg3); }
+    .scene-swatch {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: .72rem;
+      font-weight: 600;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--fg2);
+    }
+    .tag.style   { border-color: rgba(88,166,255,.4); color: var(--accent); }
+    .tag.voice   { border-color: rgba(63,185,80,.4);  color: var(--green);  }
+
+    /* Progress log */
+    #log-output {
+      font-family: 'Consolas', monospace;
+      font-size: .8rem;
+      line-height: 1.7;
+      color: var(--fg2);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      min-height: 120px;
+      max-height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-ok     { color: var(--green);  }
+    .log-err    { color: var(--red);    }
+    .log-info   { color: var(--accent); }
+    .log-warn   { color: var(--yellow); }
+
+    /* Step indicators */
+    .steps {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--fg3);
+      transition: all .2s;
+    }
+    .step.active  { border-color: var(--yellow); color: var(--yellow); background: rgba(210,153,34,.08); }
+    .step.done    { border-color: var(--green);  color: var(--green);  background: rgba(63,185,80,.08);  }
+    .step.error   { border-color: var(--red);    color: var(--red);    background: rgba(248,81,73,.08);  }
+    .step-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .step.active .step-dot { animation: pulse 1s infinite; }
+
+    /* Audio status per scene */
+    .audio-status { font-size: .75rem; }
+    .audio-ok   { color: var(--green); }
+    .audio-miss { color: var(--fg3);   }
+    .audio-err  { color: var(--red);   }
+
+    /* Video section */
+    .video-wrap {
+      background: #000;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fg3);
+      font-size: .85rem;
+    }
+    .video-wrap video { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Pipeline btn row */
+    .pipeline-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-render { background: #e94560; color: #fff; }
+    .btn-audio  { background: var(--accent2); color: #fff; }
+
+    /* Remotion notice */
+    .notice {
+      font-size: .78rem;
+      color: var(--fg3);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+    .notice code { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="icon">🎬</span>
+    <h1>Video Studio</h1>
+    <span class="subtitle">Hinglish Video Generator</span>
+  </div>
+  <div class="navbar-actions">
+    <a href="/" class="badge" style="text-decoration:none;cursor:pointer;">🎙 Audio TTS</a>
+    <button class="theme-toggle" id="theme-btn">☀ Light</button>
+  </div>
+</nav>
+
+<!-- ── Toast container ───────────────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ── Main grid ─────────────────────────────────────────────────────────── -->
+<div class="vs-grid">
+
+  <!-- ── LEFT: Script Editor ─────────────────────────────────────────────── -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Script JSON</span>
+        <span class="char-counter" id="json-valid-badge" style="color:var(--fg3)">—</span>
+      </div>
+      <textarea id="script-editor" spellcheck="false" placeholder='Paste your script.json here…&#10;&#10;[&#10;  {&#10;    "id": 1,&#10;    "english_line": "Welcome!",&#10;    "hindi_line": "Swagat hai!",&#10;    "duration": 4,&#10;    "background": "#1a1a2e",&#10;    "tts": {&#10;      "voice_id": "hi-IN-SwaraNeural",&#10;      "style": "cheerful",&#10;      "rate": "+5%",&#10;      "pitch": "+2Hz",&#10;      "emphasis": "moderate",&#10;      "pause_ms": 300&#10;    }&#10;  }&#10;]'></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="load-btn">📋 Parse Scenes</button>
+        <button class="btn btn-muted"     id="sample-btn">📄 Load Sample</button>
+        <button class="btn btn-muted"     id="clear-btn">🗑 Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Scene Preview table ─────────────────────────────────────── -->
+  <div>
+    <div class="card" style="min-height:200px;">
+      <div class="card-header">
+        <span class="card-title">Scenes</span>
+        <span id="scene-count" style="font-size:.8rem;color:var(--fg3)">—</span>
+      </div>
+      <div id="scene-table-wrap">
+        <p style="color:var(--fg3);font-size:.85rem;">Parse your JSON to see scenes here.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FULL WIDTH: Pipeline ────────────────────────────────────────────── -->
+  <div class="vs-full">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pipeline</span>
+      </div>
+
+      <!-- Step indicators -->
+      <div class="steps">
+        <div class="step" id="step-script">
+          <div class="step-dot"></div> 1. Script
+        </div>
+        <div class="step" id="step-audio">
+          <div class="step-dot"></div> 2. Generate Audio
+        </div>
+        <div class="step" id="step-render">
+          <div class="step-dot"></div> 3. Render Video
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="pipeline-row">
+        <button class="btn btn-audio"  id="gen-audio-btn"  disabled>🎙 Generate Audio</button>
+        <button class="btn btn-render" id="run-render-btn" disabled>🎬 Render Video</button>
+        <button class="btn btn-muted"  id="dl-video-btn"   style="display:none;">⬇ Download MP4</button>
+      </div>
+
+      <div class="notice" id="render-notice" style="display:none;"></div>
+
+      <!-- Log -->
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem;color:var(--fg3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">
+          Log
+        </div>
+        <div id="log-output">Ready. Parse your script to begin.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /vs-grid -->
+
+<!-- ── Status bar ─────────────────────────────────────────────────────────── -->
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-msg" id="status-msg">Ready</span>
+  <span class="status-path" id="status-path"></span>
+</div>
+
+<script src="/static/js/video.js"></script>
+</body>
+</html>
